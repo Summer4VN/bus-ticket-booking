@@ -1,17 +1,18 @@
-package jX;
+package jX; // [LỢI ÍCH]: Phân loại code vào gói jX.
 
-import javax.swing.*;
-import javax.swing.border.*;
-import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.DefaultTableModel;
-import java.awt.*;
-import java.awt.event.*;
-import java.sql.*;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
+// --- IMPORT THƯ VIỆN ---
+import javax.swing.*; // [LỢI ÍCH]: Tạo cửa sổ, nút bấm, bảng.
+import javax.swing.border.*; // [LỢI ÍCH]: Trang trí viền (padding, line).
+import javax.swing.table.DefaultTableCellRenderer; // [LỢI ÍCH]: Căn chỉnh nội dung trong ô bảng (giữa/trái/phải).
+import javax.swing.table.DefaultTableModel; // [LỢI ÍCH]: Quản lý dữ liệu (thêm/xóa dòng) cho bảng.
+import java.awt.*; // [LỢI ÍCH]: Màu sắc, Font chữ, Layout.
+import java.awt.event.*; // [LỢI ÍCH]: Bắt sự kiện click chuột, gõ phím.
+import java.sql.*; // [LỢI ÍCH]: Kết nối MySQL.
+import java.text.SimpleDateFormat; // [LỢI ÍCH]: Format ngày giờ đẹp.
+import java.util.ArrayList; // [LỢI ÍCH]: Dùng List để lưu danh sách chuyến xe linh hoạt.
 import java.util.List;
-import java.util.regex.Pattern;
-import java.io.File;
+import java.util.regex.Pattern; // [LỢI ÍCH]: Kiểm tra SĐT bằng Regex.
+import java.io.File; // [LỢI ÍCH]: Kiểm tra file ảnh QR có tồn tại không.
 
 public class TicketHomePage extends JFrame {
 
@@ -21,21 +22,25 @@ public class TicketHomePage extends JFrame {
     private final Font FONT_MAIN = new Font("Segoe UI", Font.PLAIN, 14);
     private final Font FONT_BOLD = new Font("Segoe UI", Font.BOLD, 14);
 
+    // [LỢI ÍCH]: CardLayout để chuyển đổi giữa các tab (Trang chủ <-> Vé của tôi <-> Lịch sử).
+    // [NẾU XOÁ]: Các giao diện sẽ bị đè lên nhau hoặc phải mở nhiều cửa sổ con rất rối.
     private CardLayout cardLayout;
     private JPanel centerPanel;
+    
+    // Các biến giao diện cần truy cập toàn cục
     private JComboBox<String> cbFrom, cbTo;
     private JTable resultTable, myTicketTable, historyTable;
     private DefaultTableModel tableModel, myTicketModel, historyModel;
     
-    // Components cho tab Tài khoản
     private JTextField txtProfileUser, txtProfilePhone;
 
-    // Format ngày giờ
+    // [LỢI ÍCH]: Định dạng ngày giờ chuẩn (VD: 15/01/2026 14:30).
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm");
 
+    // [LỢI ÍCH]: Cache (Lưu tạm) danh sách chuyến xe từ DB vào RAM để tìm kiếm cho nhanh, đỡ phải gọi DB liên tục.
     private List<Trip> allTrips = new ArrayList<>();
     
-    // Danh sách 63 tỉnh thành
+    // [LỢI ÍCH]: Danh sách cứng 63 tỉnh thành để nạp vào ComboBox.
     private final String[] STATIONS = { 
         "An Giang", "Bà Rịa - Vũng Tàu", "Bạc Liêu", "Bắc Kạn", "Bắc Giang", "Bắc Ninh", "Bến Tre", "Bình Dương", "Bình Định", "Bình Phước", "Bình Thuận", 
         "Cà Mau", "Cao Bằng", "Cần Thơ", "Đà Nẵng", "Đắk Lắk", "Đắk Nông", "Điện Biên", "Đồng Nai", "Đồng Tháp", "Gia Lai", "Hà Giang", "Hà Nam", "Hà Nội", 
@@ -45,6 +50,8 @@ public class TicketHomePage extends JFrame {
         "Tuyên Quang", "Vĩnh Long", "Vĩnh Phúc", "Yên Bái" 
     };
     
+    // [LỢI ÍCH]: Class nội bộ (Inner Class) mô phỏng cấu trúc 1 chuyến xe.
+    // Giúp code gọn gàng hơn thay vì quản lý từng mảng string rời rạc.
     static class Trip {
         String name, time, route, type, seats, price, status;
         public Trip(String n, String t, String r, String ty, String s, String p, String st) {
@@ -58,58 +65,66 @@ public class TicketHomePage extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         
+        // [QUAN TRỌNG]: Tải dữ liệu xe vào RAM ngay khi mở app.
         loadTripsFromDB(); 
 
         setLayout(new BorderLayout());
-        add(initNavbar(), BorderLayout.NORTH);
+        add(initNavbar(), BorderLayout.NORTH); // Thêm thanh menu điều hướng
 
         cardLayout = new CardLayout();
         centerPanel = new JPanel(cardLayout);
         
-        centerPanel.add(initHomeView(), "HOME");
-        centerPanel.add(initMyTicketView(), "MY_TICKET");
-        centerPanel.add(initHistoryView(), "HISTORY");
-        centerPanel.add(initProfileView(), "PROFILE");
+        // Thêm các màn hình chức năng
+        centerPanel.add(initHomeView(), "HOME");         // Màn hình chính (Tìm & Đặt vé)
+        centerPanel.add(initMyTicketView(), "MY_TICKET");// Màn hình vé đã đặt
+        centerPanel.add(initHistoryView(), "HISTORY");   // Màn hình lịch sử giao dịch
+        centerPanel.add(initProfileView(), "PROFILE");   // Màn hình thông tin cá nhân
 
         add(centerPanel, BorderLayout.CENTER);
-        cardLayout.show(centerPanel, "HOME");
+        cardLayout.show(centerPanel, "HOME"); // Mặc định hiện trang chủ
     }
 
-    // =========================================================================
-    // LOGIC DATABASE & HELPER
-    // =========================================================================
+    // ================= XỬ LÝ DỮ LIỆU (BACKEND LOGIC) =================
+    
+    // 1. Tải danh sách chuyến xe từ DB
     private void loadTripsFromDB() {
-        allTrips.clear();
+        allTrips.clear(); // Xóa dữ liệu cũ
         try (Connection conn = DatabaseConnection.getConnection()) {
             if (conn == null) return;
             String sql = "SELECT * FROM trips"; 
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
+            // Duyệt qua từng dòng trong bảng 'trips' và thêm vào list 'allTrips'
             while (rs.next()) {
                 allTrips.add(new Trip(rs.getString("nhaxe"), rs.getString("gio_chay"), rs.getString("lo_trinh"), rs.getString("loai_xe"), rs.getString("ghe_trong"), rs.getString("gia_ve"), rs.getString("trang_thai")));
             }
         } catch (Exception e) { e.printStackTrace(); }
     }
     
-    // Autocomplete cho ComboBox
+    // 2. Tính năng Gợi ý tìm kiếm (Autocomplete)
+    // [LỢI ÍCH]: Giúp người dùng tìm nhanh tỉnh thành bằng cách gõ phím thay vì cuộn danh sách dài.
     private void setupAutoComplete(final JComboBox<String> comboBox, final String[] items) {
-        comboBox.setEditable(true);
+        comboBox.setEditable(true); // Cho phép gõ chữ vào ô
         final JTextField textInput = (JTextField) comboBox.getEditor().getEditorComponent();
         
         textInput.addKeyListener(new KeyAdapter() {
             @Override
             public void keyReleased(KeyEvent e) {
+                // Bỏ qua các phím điều hướng
                 if (e.getKeyCode() == KeyEvent.VK_UP || e.getKeyCode() == KeyEvent.VK_DOWN || e.getKeyCode() == KeyEvent.VK_ENTER) return;
+                
                 SwingUtilities.invokeLater(() -> {
                     String text = textInput.getText();
                     List<String> filterList = new ArrayList<>();
+                    // Lọc danh sách tỉnh khớp với từ khóa
                     for (String item : items) {
                         if (item.toLowerCase().contains(text.toLowerCase())) filterList.add(item);
                     }
+                    // Cập nhật lại danh sách xổ xuống
                     if (!filterList.isEmpty()) {
                         comboBox.setModel(new DefaultComboBoxModel<>(filterList.toArray(new String[0])));
                         comboBox.setSelectedItem(text);
-                        comboBox.showPopup();
+                        comboBox.showPopup(); // Tự động mở danh sách
                         if (comboBox.getItemCount() > 0) textInput.setCaretPosition(text.length()); 
                     } else {
                         comboBox.setModel(new DefaultComboBoxModel<>(new String[]{"Không tìm thấy tỉnh thành này"}));
@@ -121,6 +136,7 @@ public class TicketHomePage extends JFrame {
         });
     }
 
+    // 3. Reset trang chủ về mặc định
     private void resetHomeView() {
         if(cbFrom != null && cbTo != null) {
             cbFrom.setModel(new DefaultComboBoxModel<>(STATIONS));
@@ -128,11 +144,12 @@ public class TicketHomePage extends JFrame {
             cbFrom.setSelectedItem("TP. Hồ Chí Minh");
             cbTo.setSelectedItem("Lâm Đồng");
         }
-        loadTripsFromDB();
-        loadTableData(allTrips);
+        loadTripsFromDB(); // Tải lại dữ liệu mới nhất từ DB
+        loadTableData(allTrips); // Hiển thị lại bảng
         if(resultTable != null) resultTable.clearSelection();
     }
 
+    // 4. Tải thông tin cá nhân (SĐT)
     private void loadUserProfile() {
         txtProfileUser.setText(Session.currentUsername);
         try (Connection conn = DatabaseConnection.getConnection()) {
@@ -143,15 +160,20 @@ public class TicketHomePage extends JFrame {
         } catch (Exception e) { e.printStackTrace(); }
     }
 
+    // 5. Cập nhật số điện thoại
     private void updatePhoneNumber() {
         String newPhone = txtProfilePhone.getText().trim();
+        // Validation
         if (newPhone.isEmpty()) { JOptionPane.showMessageDialog(this, "Số điện thoại không được để trống!", "Lỗi", JOptionPane.ERROR_MESSAGE); return; }
-        String regex = "^(0|\\+84)\\d{9}$";
-        if (!Pattern.matches(regex, newPhone)) { JOptionPane.showMessageDialog(this, "Số điện thoại sai định dạng!\n(Phải bắt đầu 0 hoặc +84 và đủ 10 số)", "Lỗi", JOptionPane.ERROR_MESSAGE); return; }
+        if (!Pattern.matches("^(0|\\+84)\\d{9}$", newPhone)) { JOptionPane.showMessageDialog(this, "Số điện thoại sai định dạng!", "Lỗi", JOptionPane.ERROR_MESSAGE); return; }
+        
         try (Connection conn = DatabaseConnection.getConnection()) {
+            // Kiểm tra trùng lặp (trừ bản thân mình ra)
             PreparedStatement check = conn.prepareStatement("SELECT username FROM users WHERE phone_number=? AND username != ?");
             check.setString(1, newPhone); check.setString(2, Session.currentUsername);
             if (check.executeQuery().next()) { JOptionPane.showMessageDialog(this, "Số điện thoại đã được tài khoản khác sử dụng!", "Lỗi trùng", JOptionPane.ERROR_MESSAGE); return; }
+            
+            // Cập nhật vào DB
             PreparedStatement update = conn.prepareStatement("UPDATE users SET phone_number=?, updated_at=NOW() WHERE username=?");
             update.setString(1, newPhone); update.setString(2, Session.currentUsername);
             update.executeUpdate();
@@ -159,29 +181,52 @@ public class TicketHomePage extends JFrame {
         } catch (Exception e) { e.printStackTrace(); }
     }
 
-    // =========================================================================
-    // UI COMPONENTS & TABS
-    // =========================================================================
+    // ================= UI NAVBAR & TABS (GIAO DIỆN) =================
     
-    // NAVBAR
+    // Thanh menu trên cùng
     private JPanel initNavbar() {
         JPanel nav = new JPanel(new BorderLayout()); nav.setBackground(COLOR_PRIMARY); nav.setPreferredSize(new Dimension(getWidth(), 60)); nav.setBorder(new EmptyBorder(0, 20, 0, 20));
         JLabel lblBrand = new JLabel("APP ĐẶT XE KHÁCH"); lblBrand.setFont(new Font("Segoe UI", Font.BOLD, 22)); lblBrand.setForeground(Color.WHITE);
         JPanel links = new JPanel(new FlowLayout(FlowLayout.RIGHT, 30, 15)); links.setOpaque(false);
-        links.add(createNavLink("Trang chủ", "HOME")); links.add(createNavLink("Vé của tôi", "MY_TICKET")); links.add(createNavLink("Lịch sử", "HISTORY")); links.add(createNavLink("Thông tin tài khoản", "PROFILE"));
+        
+        // Tạo các nút chuyển tab
+        links.add(createNavLink("Trang chủ", "HOME")); 
+        links.add(createNavLink("Vé của tôi", "MY_TICKET")); 
+        links.add(createNavLink("Lịch sử", "HISTORY")); 
+        links.add(createNavLink("Thông tin tài khoản", "PROFILE"));
+        
         JButton btnLogout = new JButton("Đăng xuất"); styleButton(btnLogout, new Color(231, 76, 60)); btnLogout.setPreferredSize(new Dimension(100, 30));
-        btnLogout.addActionListener(e -> { int choice = JOptionPane.showConfirmDialog(this, "Bạn muốn đăng xuất?", "Xác nhận", JOptionPane.YES_NO_OPTION); if (choice == JOptionPane.YES_OPTION) { this.dispose(); try { new TicketLoginGUI().setVisible(true); } catch (Exception ex) {} } });
+        btnLogout.addActionListener(e -> { 
+            int choice = JOptionPane.showConfirmDialog(this, "Bạn muốn đăng xuất?", "Xác nhận", JOptionPane.YES_NO_OPTION); 
+            if (choice == JOptionPane.YES_OPTION) { this.dispose(); try { new TicketLoginGUI().setVisible(true); } catch (Exception ex) {} } 
+        });
         links.add(btnLogout); nav.add(lblBrand, BorderLayout.WEST); nav.add(links, BorderLayout.EAST); return nav;
     }
-    private JLabel createNavLink(String t, String c) { JLabel l = new JLabel(t); l.setFont(FONT_MAIN); l.setForeground(Color.WHITE); l.setCursor(new Cursor(Cursor.HAND_CURSOR)); l.addMouseListener(new MouseAdapter() { public void mouseClicked(MouseEvent e) { cardLayout.show(centerPanel, c); if(c.equals("HOME")) resetHomeView(); if(c.equals("MY_TICKET")) refreshMyTicketTable(); if(c.equals("HISTORY")) refreshHistoryTable(); if(c.equals("PROFILE")) loadUserProfile(); } public void mouseEntered(MouseEvent e) { l.setForeground(Color.YELLOW); l.setFont(FONT_BOLD); } public void mouseExited(MouseEvent e) { l.setForeground(Color.WHITE); l.setFont(FONT_MAIN); } }); return l; }
+    
+    // Helper tạo link điều hướng
+    private JLabel createNavLink(String t, String c) { 
+        JLabel l = new JLabel(t); l.setFont(FONT_MAIN); l.setForeground(Color.WHITE); l.setCursor(new Cursor(Cursor.HAND_CURSOR)); 
+        l.addMouseListener(new MouseAdapter() { 
+            public void mouseClicked(MouseEvent e) { 
+                cardLayout.show(centerPanel, c); // Chuyển tab
+                // Tải lại dữ liệu tương ứng khi bấm vào tab
+                if(c.equals("HOME")) resetHomeView(); 
+                if(c.equals("MY_TICKET")) refreshMyTicketTable(); 
+                if(c.equals("HISTORY")) refreshHistoryTable(); 
+                if(c.equals("PROFILE")) loadUserProfile(); 
+            } 
+            public void mouseEntered(MouseEvent e) { l.setForeground(Color.YELLOW); l.setFont(FONT_BOLD); } 
+            public void mouseExited(MouseEvent e) { l.setForeground(Color.WHITE); l.setFont(FONT_MAIN); } 
+        }); return l; 
+    }
 
-    // --- TAB 1: HOME (GIAO DIỆN TÌM KIẾM ĐÃ CĂN CHỈNH) ---
+    // --- TAB 1: HOME (GIAO DIỆN TÌM KIẾM) ---
     private JPanel initHomeView() {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.add(initFilterPanel(), BorderLayout.WEST);
+        panel.add(initFilterPanel(), BorderLayout.WEST); // Bộ lọc bên trái
         JPanel main = new JPanel(new BorderLayout()); main.setBackground(COLOR_BG);
 
-        // Thanh tìm kiếm căn giữa, khoảng cách rộng rãi
+        // Thanh tìm kiếm căn giữa
         JPanel searchBox = new JPanel(new FlowLayout(FlowLayout.CENTER, 30, 25)); 
         searchBox.setBackground(Color.WHITE); 
         searchBox.setBorder(new MatteBorder(0, 0, 1, 0, Color.LIGHT_GRAY));
@@ -192,7 +237,7 @@ public class TicketHomePage extends JFrame {
         styleComboBox(cbFrom); styleComboBox(cbTo);
         
         JButton btnSearch = new JButton("TÌM CHUYẾN"); styleButton(btnSearch, new Color(52, 152, 219));
-        btnSearch.setPreferredSize(new Dimension(150, 35)); // Chiều cao bằng ô nhập
+        btnSearch.setPreferredSize(new Dimension(150, 35));
         
         btnSearch.addActionListener(e -> {
             String from = (String)cbFrom.getSelectedItem();
@@ -200,23 +245,21 @@ public class TicketHomePage extends JFrame {
             if (from == null || from.contains("Không tìm thấy") || to == null || to.contains("Không tìm thấy")) {
                 JOptionPane.showMessageDialog(this, "Vui lòng chọn tỉnh thành hợp lệ!", "Lỗi", JOptionPane.WARNING_MESSAGE); return;
             }
-            filterTrips(from, to);
+            filterTrips(from, to); // Gọi hàm lọc
         });
         
-        // Panel riêng cho nút bấm để căn thẳng hàng với Label "Điểm đi"
-        JPanel btnPanel = new JPanel(new BorderLayout());
-        btnPanel.setBackground(Color.WHITE);
-        JLabel lblDummy = new JLabel(" "); // Label rỗng để đẩy nút xuống
-        lblDummy.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btnPanel.add(lblDummy, BorderLayout.NORTH);
-        btnPanel.add(btnSearch, BorderLayout.CENTER);
+        // Panel riêng cho nút bấm để căn thẳng hàng (dùng label rỗng để đẩy nút xuống)
+        JPanel btnPanel = new JPanel(new BorderLayout()); btnPanel.setBackground(Color.WHITE);
+        JLabel lblDummy = new JLabel(" "); lblDummy.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btnPanel.add(lblDummy, BorderLayout.NORTH); btnPanel.add(btnSearch, BorderLayout.CENTER);
         
         searchBox.add(createInputGroup("Điểm đi:", cbFrom)); 
         searchBox.add(createInputGroup("Điểm đến:", cbTo)); 
-        searchBox.add(btnPanel); // Thêm Panel nút đã căn chỉnh
+        searchBox.add(btnPanel); 
 
+        // Bảng kết quả chuyến xe
         String[] cols = {"Nhà xe", "Giờ chạy", "Lộ trình", "Loại xe", "Ghế trống", "Giá vé (VND)", "Trạng thái"};
-        tableModel = new DefaultTableModel(cols, 0) { public boolean isCellEditable(int r, int c) { return false; }};
+        tableModel = new DefaultTableModel(cols, 0) { public boolean isCellEditable(int r, int c) { return false; }}; // [LỢI ÍCH]: Không cho sửa bảng
         resultTable = new JTable(tableModel); styleTable(resultTable);
         loadTableData(allTrips); 
 
@@ -229,7 +272,7 @@ public class TicketHomePage extends JFrame {
         panel.add(main, BorderLayout.CENTER); return panel;
     }
 
-    // TAB 2: MY TICKETS
+    // --- TAB 2: VÉ CỦA TÔI ---
     private JPanel initMyTicketView() {
         JPanel panel = new JPanel(new BorderLayout()); panel.setBackground(Color.WHITE); panel.setBorder(new EmptyBorder(20, 40, 20, 40));
         JLabel title = new JLabel("VÉ CỦA TÔI (Đã đặt)"); title.setFont(new Font("Segoe UI", Font.BOLD, 20)); title.setForeground(COLOR_PRIMARY);
@@ -239,7 +282,7 @@ public class TicketHomePage extends JFrame {
         panel.add(title, BorderLayout.NORTH); panel.add(new JScrollPane(myTicketTable), BorderLayout.CENTER); return panel;
     }
 
-    // TAB 3: HISTORY
+    // --- TAB 3: LỊCH SỬ ---
     private JPanel initHistoryView() {
         JPanel panel = new JPanel(new BorderLayout()); panel.setBackground(Color.WHITE); panel.setBorder(new EmptyBorder(20, 40, 20, 40));
         JLabel title = new JLabel("LỊCH SỬ GIAO DỊCH"); title.setFont(new Font("Segoe UI", Font.BOLD, 20)); title.setForeground(COLOR_PRIMARY);
@@ -249,7 +292,7 @@ public class TicketHomePage extends JFrame {
         panel.add(title, BorderLayout.NORTH); panel.add(new JScrollPane(historyTable), BorderLayout.CENTER); return panel;
     }
 
-    // TAB 4: PROFILE
+    // --- TAB 4: THÔNG TIN TÀI KHOẢN ---
     private JPanel initProfileView() {
         JPanel p = new JPanel(new GridBagLayout()); p.setBackground(Color.WHITE);
         JPanel c = new JPanel(); c.setLayout(new BoxLayout(c, BoxLayout.Y_AXIS)); c.setBackground(Color.WHITE); 
@@ -264,16 +307,18 @@ public class TicketHomePage extends JFrame {
         p.add(c); return p;
     }
 
-    // =========================================================================
-    // LOGIC XỬ LÝ
-    // =========================================================================
+    // ================= CÁC HÀM XỬ LÝ SỰ KIỆN (EVENT HANDLERS) =================
+    
+    // Nạp dữ liệu vào bảng
     private void loadTableData(List<Trip> trips) {
         tableModel.setRowCount(0);
         for (Trip t : trips) tableModel.addRow(new Object[]{t.name, t.time, t.route, t.type, t.seats, t.price, t.status});
     }
 
+    // Lọc chuyến xe theo điểm đi/đến
     private void filterTrips(String from, String to) {
         List<Trip> filtered = new ArrayList<>();
+        // [LỢI ÍCH]: Xử lý chuỗi (lowercase + replace) để tìm kiếm linh hoạt (VD: tìm "Sài Gòn" vẫn ra "TP.HCM").
         String fromKey = from.toLowerCase().replace("tp. hồ chí minh", "sài gòn").replace("thừa thiên huế", "huế").replace("bà rịa - vũng tàu", "vũng tàu");
         String toKey = to.toLowerCase().replace("tp. hồ chí minh", "sài gòn").replace("thừa thiên huế", "huế").replace("bà rịa - vũng tàu", "vũng tàu");
         for (Trip t : allTrips) {
@@ -283,41 +328,58 @@ public class TicketHomePage extends JFrame {
         if (filtered.isEmpty()) { JOptionPane.showMessageDialog(this, "Chưa tìm thấy chuyến từ " + from + " đến " + to); tableModel.setRowCount(0); } else { loadTableData(filtered); }
     }
 
+    // Xử lý khi bấm nút ĐẶT VÉ
     private void processBooking() {
         int row = resultTable.getSelectedRow();
         if (row == -1) { JOptionPane.showMessageDialog(this, "Vui lòng chọn chuyến xe muốn đặt!", "Chưa chọn vé", JOptionPane.WARNING_MESSAGE); return; }
+        
+        // [LỢI ÍCH]: Kiểm tra trạng thái vé. Nếu "Hết vé" thì chặn luôn.
         String status = tableModel.getValueAt(row, 6).toString();
         if (status.equalsIgnoreCase("Hết vé") || status.equalsIgnoreCase("Hết chỗ")) {
             JOptionPane.showMessageDialog(this, "Đã hết vé không đặt vé được nữa!", "Thông báo", JOptionPane.ERROR_MESSAGE); return;
         }
+        
+        // Lấy thông tin vé
         String bus = tableModel.getValueAt(row, 0).toString();
         String route = tableModel.getValueAt(row, 2).toString();
         String time = tableModel.getValueAt(row, 1).toString();
         String price = tableModel.getValueAt(row, 5).toString();
+        
+        // Mở dialog thanh toán
         showPaymentDialog(bus, route, time, price);
     }
 
-    // =========================================================================
-    // PAYMENT DIALOG
-    // =========================================================================
+    // ================= PAYMENT DIALOG (THANH TOÁN QR) =================
     private void showPaymentDialog(String bus, String route, String time, String price) {
         JDialog dialog = new JDialog(this, "Cổng Thanh Toán QR", true); dialog.setSize(500, 680); dialog.setLayout(new BorderLayout()); dialog.setLocationRelativeTo(this); dialog.getContentPane().setBackground(Color.WHITE);
         JPanel mainContent = new JPanel(); mainContent.setLayout(new BoxLayout(mainContent, BoxLayout.Y_AXIS)); mainContent.setBackground(Color.WHITE); mainContent.setBorder(new EmptyBorder(20, 30, 20, 30));
         JLabel lblTitle = new JLabel("XÁC NHẬN ĐẶT VÉ"); lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 22)); lblTitle.setForeground(COLOR_PRIMARY); lblTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        // Panel thông tin vé
         JPanel infoPanel = new JPanel(new GridBagLayout()); infoPanel.setBackground(new Color(245, 245, 245)); infoPanel.setBorder(BorderFactory.createCompoundBorder(new LineBorder(new Color(220, 220, 220), 1, true), new EmptyBorder(15, 20, 15, 20))); infoPanel.setAlignmentX(Component.CENTER_ALIGNMENT); infoPanel.setMaximumSize(new Dimension(400, 200));
         GridBagConstraints gbc = new GridBagConstraints(); gbc.insets = new Insets(5, 5, 5, 10); gbc.anchor = GridBagConstraints.EAST; gbc.weightx = 0;
         addInfoRow(infoPanel, gbc, 0, "Nhà xe:", bus, false); addInfoRow(infoPanel, gbc, 1, "Lộ trình:", route, false); addInfoRow(infoPanel, gbc, 2, "Giờ khởi hành:", time, false); addInfoRow(infoPanel, gbc, 3, "TỔNG TIỀN:", price + " VNĐ", true);
+        
+        // Panel QR Code
         JPanel qrPanel = new JPanel(); qrPanel.setLayout(new BoxLayout(qrPanel, BoxLayout.Y_AXIS)); qrPanel.setBackground(Color.WHITE); qrPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
         JLabel lblInstruct = new JLabel("Quét mã QR bên dưới để thanh toán"); lblInstruct.setFont(new Font("Segoe UI", Font.ITALIC, 14)); lblInstruct.setForeground(Color.DARK_GRAY); lblInstruct.setAlignmentX(Component.CENTER_ALIGNMENT);
         JLabel qrLabel = new JLabel(); qrLabel.setAlignmentX(Component.CENTER_ALIGNMENT); qrLabel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
+        
+        // [LỢI ÍCH]: Tải ảnh QR từ ổ đĩa D:.
+        // [NẾU XOÁ]: Ảnh QR sẽ không hiện, hoặc báo lỗi nếu đường dẫn sai.
         String qrPath = "D:\\payment_qr.jpg"; File qrFile = new File(qrPath);
         if (qrFile.exists()) { ImageIcon qrIcon = new ImageIcon(qrPath); qrLabel.setIcon(new ImageIcon(qrIcon.getImage().getScaledInstance(220, 220, Image.SCALE_SMOOTH))); } else { qrLabel.setText("<html><center><font color='red'>Không tìm thấy ảnh QR!<br>" + qrPath + "</font></center></html>"); qrLabel.setPreferredSize(new Dimension(220, 220)); qrLabel.setHorizontalAlignment(SwingConstants.CENTER); }
+        
         qrPanel.add(lblInstruct); qrPanel.add(Box.createVerticalStrut(10)); qrPanel.add(qrLabel);
         mainContent.add(lblTitle); mainContent.add(Box.createVerticalStrut(20)); mainContent.add(infoPanel); mainContent.add(Box.createVerticalStrut(25)); mainContent.add(qrPanel); mainContent.add(Box.createVerticalGlue());
+        
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER)); buttonPanel.setBackground(Color.WHITE); buttonPanel.setBorder(new EmptyBorder(10, 0, 20, 0));
         JButton btnConfirm = new JButton("TÔI ĐÃ CHUYỂN KHOẢN"); styleButton(btnConfirm, new Color(39, 174, 96)); btnConfirm.setPreferredSize(new Dimension(250, 45)); btnConfirm.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        
+        // [QUAN TRỌNG]: Sự kiện xác nhận thanh toán -> Lưu vào DB
         btnConfirm.addActionListener(e -> {
             try (Connection conn = DatabaseConnection.getConnection()) {
+                // Insert booking mới với status="Chờ xác nhận"
                 String sql = "INSERT INTO bookings (username, trip_info, price, status) VALUES (?, ?, ?, ?)";
                 PreparedStatement stmt = conn.prepareStatement(sql);
                 stmt.setString(1, Session.currentUsername); stmt.setString(2, route + " (" + time + ")"); stmt.setString(3, price); stmt.setString(4, "Chờ xác nhận");
@@ -327,8 +389,10 @@ public class TicketHomePage extends JFrame {
         });
         buttonPanel.add(btnConfirm); dialog.add(mainContent, BorderLayout.CENTER); dialog.add(buttonPanel, BorderLayout.SOUTH); dialog.setVisible(true);
     }
+    
     private void addInfoRow(JPanel p, GridBagConstraints gbc, int row, String labelStr, String valueStr, boolean isBold) { gbc.gridx = 0; gbc.gridy = row; gbc.anchor = GridBagConstraints.EAST; JLabel lbl = new JLabel(labelStr); lbl.setFont(FONT_MAIN); if (isBold) lbl.setFont(FONT_BOLD); p.add(lbl, gbc); gbc.gridx = 1; gbc.anchor = GridBagConstraints.WEST; gbc.weightx = 1.0; JLabel val = new JLabel(valueStr); val.setFont(new Font("Segoe UI", isBold ? Font.BOLD : Font.PLAIN, 15)); if (isBold) val.setForeground(new Color(231, 76, 60)); p.add(val, gbc); }
 
+    // Refresh các bảng dữ liệu cá nhân
     private void refreshMyTicketTable() {
         myTicketModel.setRowCount(0);
         try (Connection conn = DatabaseConnection.getConnection()) {
@@ -355,9 +419,7 @@ public class TicketHomePage extends JFrame {
         } catch (Exception e) { e.printStackTrace(); }
     }
 
-    // =========================================================================
-    // UI HELPERS (BỘ LỌC ĐẸP & CĂN TRÁI)
-    // =========================================================================
+    // [LỢI ÍCH]: Bộ lọc bên trái giúp giao diện trông chuyên nghiệp.
     private JPanel initFilterPanel() {
         JPanel p = new JPanel(); p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS)); p.setBackground(Color.WHITE); p.setPreferredSize(new Dimension(240, getHeight()));
         p.setBorder(new CompoundBorder(new MatteBorder(0, 0, 0, 1, new Color(230, 230, 230)), new EmptyBorder(30, 25, 30, 10)));
@@ -379,9 +441,10 @@ public class TicketHomePage extends JFrame {
         } p.add(Box.createVerticalStrut(20));
     }
 
+    // Các hàm helper định dạng giao diện
     private JPanel createInputGroup(String l, JComponent c) { 
         JPanel p=new JPanel(new BorderLayout()); p.add(new JLabel(l),BorderLayout.NORTH); p.add(c,BorderLayout.CENTER); p.setBackground(Color.WHITE); 
-        p.setPreferredSize(new Dimension(200, 60)); // Fixed Size để đều nhau
+        p.setPreferredSize(new Dimension(200, 60)); // [LỢI ÍCH]: Cố định kích thước để ô nhập đều nhau.
         return p; 
     }
     private void styleButton(JButton b, Color c) { b.setBackground(c); b.setForeground(Color.WHITE); b.setFont(FONT_BOLD); b.setFocusPainted(false); }
